@@ -7,27 +7,77 @@ document.addEventListener('DOMContentLoaded', function () {
   if (navbar) {
     window.addEventListener('scroll', () => {
       navbar.classList.toggle('scrolled', window.scrollY > 20);
-    });
+    }, { passive: true });
   }
 
-  // ─── Mobile Navigation Toggle ───
+  // ─── Mobile Navigation Toggle & Fullscreen Drawer ───
   const mobileToggle = document.querySelector('.mobile-toggle');
   const navLinks = document.querySelector('.nav-links');
 
   if (mobileToggle && navLinks) {
-    mobileToggle.addEventListener('click', () => {
-      mobileToggle.classList.toggle('active');
-      navLinks.classList.toggle('active');
-      document.body.style.overflow = navLinks.classList.contains('active') ? 'hidden' : '';
+    // Inject mobile menu actions (Language Switcher, Booking CTA, Call/WhatsApp)
+    if (!navLinks.querySelector('.mobile-menu-actions')) {
+      const isArabic = document.documentElement.dir === 'rtl';
+      const currentPath = window.location.pathname;
+      const pageName = currentPath.substring(currentPath.lastIndexOf('/') + 1) || 'index.html';
+      
+      let targetLangPage = '';
+      let targetLangText = '';
+      if (isArabic) {
+        targetLangPage = pageName.replace('-ar.html', '.html');
+        if (!targetLangPage.endsWith('.html')) targetLangPage = 'index.html';
+        targetLangText = '🌐 Switch to English';
+      } else {
+        targetLangPage = pageName.replace('.html', '-ar.html');
+        if (!targetLangPage.endsWith('-ar.html')) targetLangPage = 'index-ar.html';
+        targetLangText = '🌐 التبديل إلى العربية';
+      }
+
+      const actions = document.createElement('div');
+      actions.className = 'mobile-menu-actions';
+      actions.innerHTML = `
+        <a href="${targetLangPage}" class="mobile-lang-btn">
+          ${targetLangText}
+        </a>
+        <a href="${isArabic ? 'contact-ar.html#appointment' : 'contact.html#appointment'}" class="btn-primary" style="justify-content:center; width:100%; border-radius:12px;">
+          <i class="fas fa-calendar-check"></i> ${isArabic ? 'احجز موعد الآن' : 'Book Appointment Now'}
+        </a>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+          <a href="tel:+97165227676" class="btn-secondary" style="justify-content:center; padding:12px; font-size:0.875rem; border-radius:12px;">
+            <i class="fas fa-phone"></i> ${isArabic ? 'اتصال مباشر' : 'Call Clinic'}
+          </a>
+          <a href="https://wa.me/971505502346" target="_blank" class="btn-secondary" style="justify-content:center; padding:12px; font-size:0.875rem; border-radius:12px; border-color:#25D366; color:#25D366;">
+            <i class="fab fa-whatsapp"></i> ${isArabic ? 'واتساب' : 'WhatsApp'}
+          </a>
+        </div>
+      `;
+      navLinks.appendChild(actions);
+    }
+
+    function toggleMenu(show) {
+      const isActive = typeof show === 'boolean' ? show : !navLinks.classList.contains('active');
+      mobileToggle.classList.toggle('active', isActive);
+      navLinks.classList.toggle('active', isActive);
+      document.body.style.overflow = isActive ? 'hidden' : '';
+    }
+
+    mobileToggle.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleMenu();
     });
 
-    // Close on link click
+    // Close on any link click
     navLinks.querySelectorAll('a').forEach(link => {
       link.addEventListener('click', () => {
-        mobileToggle.classList.remove('active');
-        navLinks.classList.remove('active');
-        document.body.style.overflow = '';
+        toggleMenu(false);
       });
+    });
+
+    // Close on Escape key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && navLinks.classList.contains('active')) {
+        toggleMenu(false);
+      }
     });
   }
 
@@ -36,7 +86,7 @@ document.addEventListener('DOMContentLoaded', function () {
   if (scrollTopBtn) {
     window.addEventListener('scroll', () => {
       scrollTopBtn.classList.toggle('visible', window.scrollY > 500);
-    });
+    }, { passive: true });
     scrollTopBtn.addEventListener('click', () => {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     });
@@ -53,7 +103,6 @@ document.addEventListener('DOMContentLoaded', function () {
     function update(currentTime) {
       const elapsed = currentTime - startTime;
       const progress = Math.min(elapsed / duration, 1);
-      // Ease out quad
       const eased = 1 - (1 - progress) * (1 - progress);
       const current = Math.floor(eased * (target - start) + start);
       el.textContent = current.toLocaleString() + suffix;
@@ -68,17 +117,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // ─── Intersection Observer for Animations ───
   const observerOptions = {
-    threshold: 0.2,
-    rootMargin: '0px 0px -50px 0px'
+    threshold: 0.15,
+    rootMargin: '0px 0px -40px 0px'
   };
 
-  // Animate elements on scroll
   const animateOnScroll = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
       if (entry.isIntersecting) {
         entry.target.classList.add('animate-visible');
         
-        // Counter animation
         if (entry.target.classList.contains('stat-number') || 
             entry.target.classList.contains('counter')) {
           animateCounter(entry.target);
@@ -89,29 +136,25 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }, observerOptions);
 
-  // Observe elements with data-animate attribute
   document.querySelectorAll('[data-animate]').forEach(el => {
     el.style.opacity = '0';
-    el.style.transform = 'translateY(30px)';
+    el.style.transform = 'translateY(24px)';
     el.style.transition = `opacity 0.6s ease ${el.dataset.delay || '0s'}, transform 0.6s ease ${el.dataset.delay || '0s'}`;
-    observerOptions.threshold = 0.15;
     animateOnScroll.observe(el);
   });
 
-  // Also observe counters
   document.querySelectorAll('[data-target]').forEach(el => {
     animateOnScroll.observe(el);
   });
 
-  // CSS for animated visible state
-  const style = document.createElement('style');
-  style.textContent = `
+  const animStyle = document.createElement('style');
+  animStyle.textContent = `
     .animate-visible {
       opacity: 1 !important;
       transform: translateY(0) !important;
     }
   `;
-  document.head.appendChild(style);
+  document.head.appendChild(animStyle);
 
   // ─── Active Navigation Link ───
   const currentPage = window.location.pathname.split('/').pop() || 'index.html';
@@ -135,19 +178,25 @@ document.addEventListener('DOMContentLoaded', function () {
       const date = formData.get('date') || '';
       const time = formData.get('time') || '';
 
-      // Build WhatsApp message
-      let message = `Hello! I'd like to book an appointment.\n\n`;
-      if (name) message += `Name: ${name}\n`;
-      if (phone) message += `Phone: ${phone}\n`;
-      if (service) message += `Service: ${service}\n`;
-      if (date) message += `Preferred Date: ${date}\n`;
-      if (time) message += `Preferred Time: ${time}\n`;
-      message += `\nPlease confirm the appointment. Thank you!`;
+      let message = `Hello! I'd like to book an appointment.
+
+`;
+      if (name) message += `Name: ${name}
+`;
+      if (phone) message += `Phone: ${phone}
+`;
+      if (service) message += `Service: ${service}
+`;
+      if (date) message += `Preferred Date: ${date}
+`;
+      if (time) message += `Preferred Time: ${time}
+`;
+      message += `
+Please confirm the appointment. Thank you!`;
 
       const whatsappUrl = `https://wa.me/971505502346?text=${encodeURIComponent(message)}`;
       window.open(whatsappUrl, '_blank');
 
-      // Show success feedback
       const btn = this.querySelector('button[type="submit"]');
       const originalHTML = btn.innerHTML;
       btn.innerHTML = '<i class="fas fa-check"></i> Sent to WhatsApp!';
@@ -174,42 +223,6 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     });
   });
-
-  // ─── Lazy Load Images ───
-  if ('IntersectionObserver' in window) {
-    const imgObserver = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          const img = entry.target;
-          if (img.dataset.src) {
-            img.src = img.dataset.src;
-            img.removeAttribute('data-src');
-          }
-          imgObserver.unobserve(img);
-        }
-      });
-    });
-
-    document.querySelectorAll('img[data-src]').forEach(img => {
-      imgObserver.observe(img);
-    });
-  }
-
-  // ─── Testimonial Auto-Scroll (simple) ───
-  const testimonialTrack = document.querySelector('.testimonial-track');
-  if (testimonialTrack) {
-    let scrollPos = 0;
-    const cards = testimonialTrack.children;
-    const totalWidth = testimonialTrack.scrollWidth;
-    
-    setInterval(() => {
-      scrollPos += 340;
-      if (scrollPos >= totalWidth - testimonialTrack.offsetWidth) {
-        scrollPos = 0;
-      }
-      testimonialTrack.scrollTo({ left: scrollPos, behavior: 'smooth' });
-    }, 5000);
-  }
 
   // ─── Gallery Lightbox ───
   const galleryItems = document.querySelectorAll('.gallery-item');
@@ -238,9 +251,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-});
-
-  // --- Hero Carousel Logic ---
+  // ─── Hero Carousel Logic with Touch / Swipe Support ───
   const track = document.getElementById('heroCarousel');
   const prevBtn = document.getElementById('prevSlide');
   const nextBtn = document.getElementById('nextSlide');
@@ -251,7 +262,7 @@ document.addEventListener('DOMContentLoaded', function () {
   if (track && indicators.length > 0) {
     const totalSlides = indicators.length;
 
-        function updateCarousel() {
+    function updateCarousel() {
       const isRTL = document.documentElement.dir === 'rtl';
       const offset = isRTL ? (currentSlide * 100) : -(currentSlide * 100);
       track.style.transform = 'translateX(' + offset + '%)';
@@ -276,8 +287,8 @@ document.addEventListener('DOMContentLoaded', function () {
       updateCarousel();
     }
 
-    if(nextBtn) nextBtn.addEventListener('click', () => { nextSlideFunc(); resetInterval(); });
-    if(prevBtn) prevBtn.addEventListener('click', () => { prevSlideFunc(); resetInterval(); });
+    if (nextBtn) nextBtn.addEventListener('click', () => { nextSlideFunc(); resetInterval(); });
+    if (prevBtn) prevBtn.addEventListener('click', () => { prevSlideFunc(); resetInterval(); });
 
     indicators.forEach((ind, i) => {
       ind.addEventListener('click', () => {
@@ -287,10 +298,46 @@ document.addEventListener('DOMContentLoaded', function () {
       });
     });
 
+    // Touch Swipe Gestures for Mobile
+    let touchStartX = 0;
+    let touchEndX = 0;
+    let touchStartY = 0;
+    let touchEndY = 0;
+
+    track.addEventListener('touchstart', (e) => {
+      touchStartX = e.changedTouches[0].clientX;
+      touchStartY = e.changedTouches[0].clientY;
+    }, { passive: true });
+
+    track.addEventListener('touchend', (e) => {
+      touchEndX = e.changedTouches[0].clientX;
+      touchEndY = e.changedTouches[0].clientY;
+      handleSwipe();
+    }, { passive: true });
+
+    function handleSwipe() {
+      const diffX = touchStartX - touchEndX;
+      const diffY = touchStartY - touchEndY;
+      // Only trigger if horizontal swipe is greater than vertical scroll
+      if (Math.abs(diffX) > 40 && Math.abs(diffX) > Math.abs(diffY)) {
+        const isRTL = document.documentElement.dir === 'rtl';
+        if (diffX > 0) {
+          // Swiped left
+          isRTL ? prevSlideFunc() : nextSlideFunc();
+        } else {
+          // Swiped right
+          isRTL ? nextSlideFunc() : prevSlideFunc();
+        }
+        resetInterval();
+      }
+    }
+
     function resetInterval() {
       clearInterval(slideInterval);
-      slideInterval = setInterval(nextSlideFunc, 6000); // 6 seconds auto-scroll
+      slideInterval = setInterval(nextSlideFunc, 6000);
     }
     
     resetInterval();
   }
+
+});
