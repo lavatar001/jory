@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', function () {
       }
 
       const actions = document.createElement('div');
-      actions.className = 'mobile-menu-actions';
+      actions.className = 'mobile-menu-actions lg:hidden';
       actions.innerHTML = `
         <a href="${targetLangPage}" class="mobile-lang-btn">
           ${targetLangText}

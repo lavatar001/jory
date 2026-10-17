@@ -248,6 +248,12 @@ a {
   background: var(--primary-50);
 }
 
+/* Mobile-only menu actions hidden on desktop */
+.mobile-menu-actions,
+.mobile-lang-btn {
+  display: none !important;
+}
+
 .btn-primary {
   display: inline-flex;
   align-items: center;
